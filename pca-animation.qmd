@@ -1,0 +1,127 @@
+---
+title: "Turtles"
+author: "Wolfgang Huber"
+date: "`r date()`"
+format:
+  html:
+    embed-resources: false
+    page-layout: full
+    toc: true
+    css: wh.css
+highlight-style: tango
+---
+
+```{r}
+library("plot3D")
+library("animation")
+library("MASS")
+```
+
+```{r}
+#| label: turtles
+#| eval: false
+turtles = read.table("/Users/whuber/clones/MSMB-Quarto/data/PaintedTurtles.txt", header = TRUE)
+labs = c("length", "width", "height")
+mat = as.matrix(turtles[, labs])
+```
+```{r}
+#| label: decathlon
+data("olympic", package = "ade4")
+athletes = setNames(olympic$tab, 
+  c("m100", "long", "weight", "high", "m400", "m110", "disc", "pole", "javel", "m1500"))
+labs = c("m100", "weight", "m400")
+mat = as.matrix(athletes[, labs])
+```
+
+```{r}
+pca = prcomp(mat, scale. = FALSE)
+```
+
+Create an animated 3D PCA visualization, rotating and projecting principal components.
+
+```{r}
+view = function(
+  angle = seq(0, 360, length.out = 120),  # 120 frames for a smooth rotation
+  maxd = 0
+  ) {
+  for (theta in angle) {
+    scatter3D(
+      x = mat[, 1], y = mat[, 2], z = mat[, 3],
+      colvar = NULL, pch = 19, cex = 1, col = "blue", 
+      theta = theta, phi = 20 + 20*sin(theta/180*pi), main = NULL,
+      xlab = colnames(mat)[1], ylab = colnames(mat)[3], zlab = colnames(mat)[3]
+    )
+    for(a in seq_len(maxd))
+      lines3D(
+        x = pca$center[1] + pca$rotation[1, a] * c(-1,1) * pca$sdev[a] * 2, 
+        y = pca$center[2] + pca$rotation[2, a] * c(-1,1) * pca$sdev[a] * 2,
+        z = pca$center[3] + pca$rotation[3, a] * c(-1,1) * pca$sdev[a] * 2,
+        col = c("orange", "red")[a], lwd = 2, add = TRUE
+      )
+  }
+}
+```
+
+Open an animation device
+
+```{r}
+saveGIF({ 
+  view(maxd=0);
+  view(maxd=1);
+  view(maxd=2);
+  }, interval = 0.05, movie.name = "PCA_turtles.gif", ani.width = 600, ani.height = 600)
+```
+
+```{r}
+#| label: more 
+#| eval: false
+  # Show the plane spanned by the first two PCs
+  for (theta in angle) {
+    scatter3D(
+      x = turtles$Length, y = turtles$Width, z = turtles$Height,
+      colvar = NULL, pch = 19, cex = 1.5, col = "blue", 
+      theta = theta, phi = 15, main = "Plane of First Two Principal Components",
+      xlab = "Length", ylab = "Width", zlab = "Height"
+    )
+    plane3D(
+      a = pca$rotation[,1], b = pca$rotation[,2], 
+      x0 = colMeans(turtles), col = "lightblue", alpha = 0.5
+    )
+  }
+  
+  # Rotate until the plane aligns with the screen
+  for (theta in seq(15, 90, length.out = 60)) {
+    scatter3D(
+      x = turtles$Length, y = turtles$Width, z = turtles$Height,
+      colvar = NULL, pch = 19, cex = 1.5, col = "blue", 
+      theta = theta, phi = 15, main = "Aligned PCA Plane",
+      xlab = "Length", ylab = "Width", zlab = "Height"
+    )
+    plane3D(
+      a = pca$rotation[,1], b = pca$rotation[,2], 
+      x0 = colMeans(turtles), col = "lightblue", alpha = 0.5
+    )
+  }
+  
+```
+
+# Explanation
+
+	•	Initial Rotation: The first loop animates the 3D scatterplot with a full 360° rotation.
+	•	Principal Components:
+	•	First PC: Shows the line along the first principal component.
+	•	Second PC: Adds the second component.
+	•	PCA Plane: Highlights the plane spanned by the first two components.
+	•	Final Alignment: Gradually aligns the plane with the 2D screen.
+
+This will output a GIF that visually illustrates each component of the PCA and the final alignment. Adjust parameters as needed for clarity or file size.
+
+
+
+# Session Info
+
+```{r}
+#| label: sessioninfo
+Sys.time()
+devtools::session_info()
+```
