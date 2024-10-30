@@ -1,5 +1,5 @@
 ---
-title: "Turtles"
+title: "Animation for teaching PCA"
 author: "Wolfgang Huber"
 date: "`r date()`"
 format:
@@ -20,6 +20,7 @@ library("MASS")
 ```{r}
 #| label: turtles
 #| eval: false
+#| echo: false
 turtles = read.table("/Users/whuber/clones/MSMB-Quarto/data/PaintedTurtles.txt", header = TRUE)
 labs = c("length", "width", "height")
 mat = as.matrix(turtles[, labs])
@@ -34,30 +35,31 @@ mat = as.matrix(athletes[, labs])
 ```
 
 ```{r}
-pca = prcomp(mat, scale. = FALSE)
+pca = prcomp(mat, scale. = TRUE)
 ```
 
 Create an animated 3D PCA visualization, rotating and projecting principal components.
 
 ```{r}
 view = function(
-  angle = seq(0, 360, length.out = 120),  # 120 frames for a smooth rotation
+  angle = seq(-180, 180, length.out = 120),  # 120 frames for a smooth rotation
   maxd = 0
   ) {
   for (theta in angle) {
     scatter3D(
       x = mat[, 1], y = mat[, 2], z = mat[, 3],
-      colvar = NULL, pch = 19, cex = 1, col = "blue", 
+      pch = 19, cex = 1, col = "blue", 
       theta = theta, phi = 20 + 20*sin(theta/180*pi), main = NULL,
-      xlab = colnames(mat)[1], ylab = colnames(mat)[3], zlab = colnames(mat)[3]
+      xlab = colnames(mat)[1], ylab = colnames(mat)[2], zlab = colnames(mat)[3],
     )
     for(a in seq_len(maxd))
       lines3D(
-        x = pca$center[1] + pca$rotation[1, a] * c(-1,1) * pca$sdev[a] * 2, 
-        y = pca$center[2] + pca$rotation[2, a] * c(-1,1) * pca$sdev[a] * 2,
-        z = pca$center[3] + pca$rotation[3, a] * c(-1,1) * pca$sdev[a] * 2,
+        x = pca$center[1] + pca$scale[1] * pca$rotation[1, a] * 2 * c(-1,1), 
+        y = pca$center[2] + pca$scale[2] * pca$rotation[2, a] * 2 * c(-1,1),
+        z = pca$center[3] + pca$scale[3] * pca$rotation[3, a] * 2 * c(-1,1),
         col = c("orange", "red")[a], lwd = 2, add = TRUE
       )
+    ## See the exaples of scatter3D: droplines till the fitted surface
   }
 }
 ```
@@ -69,7 +71,7 @@ saveGIF({
   view(maxd=0);
   view(maxd=1);
   view(maxd=2);
-  }, interval = 0.05, movie.name = "PCA_turtles.gif", ani.width = 600, ani.height = 600)
+  }, interval = 0.05, movie.name = "pca-animation.gif", ani.width = 600, ani.height = 600)
 ```
 
 ```{r}
