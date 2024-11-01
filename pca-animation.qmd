@@ -35,88 +35,65 @@ mat = as.matrix(athletes[, labs])
 ```
 
 ```{r}
-pca = prcomp(mat, scale. = TRUE)
+smat = scale(mat, center = TRUE, scale = TRUE)
+pca = prcomp(mat, scale. = FALSE, center = FALSE)
 ```
 
 Create an animated 3D PCA visualization, rotating and projecting principal components.
 
 ```{r}
+#| label: view
 view = function(
   angle = seq(-180, 180, length.out = 120),  # 120 frames for a smooth rotation
-  maxd = 0
+  maxd = 0,
+  colplane = "#606060",
+  surf = NULL
   ) {
   for (theta in angle) {
     scatter3D(
-      x = mat[, 1], y = mat[, 2], z = mat[, 3],
-      pch = 19, cex = 1, col = "blue", 
-      theta = theta, phi = 20 + 20*sin(theta/180*pi), main = NULL,
-      xlab = colnames(mat)[1], ylab = colnames(mat)[2], zlab = colnames(mat)[3],
+      x    = smat[, 1],         y    = smat[, 2],         z    = smat[, 3],
+      xlab = colnames(smat)[1], ylab = colnames(smat)[2], zlab = colnames(smat)[3],
+      pch = 19, cex = 1, col = "blue", main = NULL,
+      theta = theta, 
+      phi = 30, # 20 + 20*sin(theta/180*pi)
+      surf = surf
     )
     for(a in seq_len(maxd))
       lines3D(
-        x = pca$center[1] + pca$scale[1] * pca$rotation[1, a] * 2 * c(-1,1), 
-        y = pca$center[2] + pca$scale[2] * pca$rotation[2, a] * 2 * c(-1,1),
-        z = pca$center[3] + pca$scale[3] * pca$rotation[3, a] * 2 * c(-1,1),
-        col = c("orange", "red")[a], lwd = 2, add = TRUE
+        x = pca$rotation[1, a] * 2 * c(-1,1), 
+        y = pca$rotation[2, a] * 2 * c(-1,1),
+        z = pca$rotation[3, a] * 2 * c(-1,1),
+        col = c(colplane = "#606060", colplane = "#606060")[a], 
+        lwd = 2, add = TRUE
       )
-    ## See the exaples of scatter3D: droplines till the fitted surface
   }
 }
+```
+
+```{r}
+#| label: thesurf
+M = mesh(seq(-2, 2, by = 0.2), seq(-2, 2, by = 0.2)) 
+thesurf = list(
+  x = pca$rotation[1, 1] * M$x + pca$rotation[1, 2] * M$y,  
+  y = pca$rotation[2, 1] * M$x + pca$rotation[2, 2] * M$y,  
+  z = pca$rotation[3, 1] * M$x + pca$rotation[3, 2] * M$y
+)
 ```
 
 Open an animation device
 
 ```{r}
+#| label: saveGIF
 saveGIF({ 
   view(maxd=0);
   view(maxd=1);
   view(maxd=2);
+  view(maxd=2, surf = thesurf)
   }, interval = 0.05, movie.name = "pca-animation.gif", ani.width = 600, ani.height = 600)
 ```
 
-```{r}
-#| label: more 
-#| eval: false
-  # Show the plane spanned by the first two PCs
-  for (theta in angle) {
-    scatter3D(
-      x = turtles$Length, y = turtles$Width, z = turtles$Height,
-      colvar = NULL, pch = 19, cex = 1.5, col = "blue", 
-      theta = theta, phi = 15, main = "Plane of First Two Principal Components",
-      xlab = "Length", ylab = "Width", zlab = "Height"
-    )
-    plane3D(
-      a = pca$rotation[,1], b = pca$rotation[,2], 
-      x0 = colMeans(turtles), col = "lightblue", alpha = 0.5
-    )
-  }
-  
-  # Rotate until the plane aligns with the screen
-  for (theta in seq(15, 90, length.out = 60)) {
-    scatter3D(
-      x = turtles$Length, y = turtles$Width, z = turtles$Height,
-      colvar = NULL, pch = 19, cex = 1.5, col = "blue", 
-      theta = theta, phi = 15, main = "Aligned PCA Plane",
-      xlab = "Length", ylab = "Width", zlab = "Height"
-    )
-    plane3D(
-      a = pca$rotation[,1], b = pca$rotation[,2], 
-      x0 = colMeans(turtles), col = "lightblue", alpha = 0.5
-    )
-  }
-  
-```
+![pca-animation.gif](pca-animation.gif)
 
-# Explanation
-
-	•	Initial Rotation: The first loop animates the 3D scatterplot with a full 360° rotation.
-	•	Principal Components:
-	•	First PC: Shows the line along the first principal component.
-	•	Second PC: Adds the second component.
-	•	PCA Plane: Highlights the plane spanned by the first two components.
-	•	Final Alignment: Gradually aligns the plane with the 2D screen.
-
-This will output a GIF that visually illustrates each component of the PCA and the final alignment. Adjust parameters as needed for clarity or file size.
 
 
 
