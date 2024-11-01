@@ -44,7 +44,8 @@ Create an animated 3D PCA visualization, rotating and projecting principal compo
 ```{r}
 #| label: view
 view = function(
-  angle = seq(-180, 180, length.out = 120),  # 120 frames for a smooth rotation
+  angle = seq(-180, 180, length.out = 30),  # 120 frames for a smooth rotation
+  # angle = seq(-180, 180, length.out = 120),  # 120 frames for a smooth rotation
   maxd = 0,
   colplane = "#606060",
   surf = NULL
@@ -53,18 +54,21 @@ view = function(
     scatter3D(
       x    = smat[, 1],         y    = smat[, 2],         z    = smat[, 3],
       xlab = colnames(smat)[1], ylab = colnames(smat)[2], zlab = colnames(smat)[3],
+      xlim = range(smat[, 1]) + c(-1, +1),
+      ylim = range(smat[, 2]) + c(-1, +1),
+      zlim = range(smat[, 3]) + c(-1, +1),
       pch = 19, cex = 1, col = "blue", main = NULL,
       theta = theta, 
       phi = 30, # 20 + 20*sin(theta/180*pi)
       surf = surf
     )
-    for(a in seq_len(maxd))
-      lines3D(
-        x = pca$rotation[1, a] * 2 * c(-1,1), 
-        y = pca$rotation[2, a] * 2 * c(-1,1),
-        z = pca$rotation[3, a] * 2 * c(-1,1),
-        col = c(colplane = "#606060", colplane = "#606060")[a], 
-        lwd = 2, add = TRUE
+    if (is.null(surf))
+      for(a in seq_len(maxd))
+        lines3D(
+          x = pca$rotation[1, a] * 2 * c(-1,1), 
+          y = pca$rotation[2, a] * 2 * c(-1,1),
+          z = pca$rotation[3, a] * 2 * c(-1,1),
+          col = "#606060", lwd = 2, add = TRUE
       )
   }
 }
@@ -72,11 +76,13 @@ view = function(
 
 ```{r}
 #| label: thesurf
-M = mesh(seq(-2, 2, by = 0.2), seq(-2, 2, by = 0.2)) 
+M = mesh(2 * seq(-1, 1, by = 0.1), 2 * seq(-1, 1, by = 0.1))
 thesurf = list(
   x = pca$rotation[1, 1] * M$x + pca$rotation[1, 2] * M$y,  
   y = pca$rotation[2, 1] * M$x + pca$rotation[2, 2] * M$y,  
-  z = pca$rotation[3, 1] * M$x + pca$rotation[3, 2] * M$y
+  z = pca$rotation[3, 1] * M$x + pca$rotation[3, 2] * M$y,
+  shade = 0.1, 
+  border = NA, facets = NA, col = "#d0d0d080"
 )
 ```
 
