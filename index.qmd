@@ -11,13 +11,14 @@ format:
 highlight-style: tango
 ---
 
-
 {{< video pca-animation.mp4 >}}
 
-<!-- ![Animated PCA of athletes data](pca-animation.gif) -->
-
+[Code on GitHub](https://github.com/wolfganghuber/PCA-3D-anim)
 
 ```{r}
+#| label: loadpkgs
+#| message: false
+#| warning: false
 library("plot3D")
 library("animation")
 library("MASS")
@@ -32,7 +33,7 @@ variables = c("length", "width", "height")
 mat = as.matrix(turtles[, variables])
 ```
 
-For more on the athletes' data, see [the MSBM book](https://www.huber.embl.de/msmb/07-chap.html#what-are-the-data-matrices-and-their-motivation).
+For more on the decathlon data, see [the MSBM book](https://www.huber.embl.de/msmb/07-chap.html#what-are-the-data-matrices-and-their-motivation).
 
 ```{r}
 #| label: decathlon
@@ -54,7 +55,7 @@ Create an animated 3D PCA visualization, rotating and projecting principal compo
 #| label: view
 view = function(
   theta,
-  phi = 20,
+  phi,
   num_axes = 0,
   colplane = "#606060",
   surf = NULL
@@ -110,6 +111,8 @@ view = function(
 } # function view
 ```
 
+The plane of the first two PCs, as a mesh.
+
 ```{r}
 #| label: thesurf
 expand_plane = 2.7
@@ -122,14 +125,20 @@ theplane = list(
   shade = 0.3, 
   border = NA, facets = NA, col = "#d0d0d080"
 )
+```
+
+Choreography
+
+```{r}
+#| label: choreography
 theta1 = pi
 phi1   = 17/180*pi
 normalvec = pca$rotation[, 3]
 phi2   = asin(normalvec[3]) 
-theta2 = atan2(normalvec[2], normalvec[1]) + pi/2 # I'm not quite sure about, looks hacky
+theta2 = atan2(normalvec[2], normalvec[1]) + pi/2 # is this correct? why the 90 degrees offset.
 ```
 
-Open an animation device, do the choreography.
+Do the animation
 
 ```{r}
 #| label: savemovie
