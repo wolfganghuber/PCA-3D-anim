@@ -15,6 +15,11 @@ highlight-style: tango
 
 [Code on GitHub](https://github.com/wolfganghuber/PCA-3D-anim)
 
+**To do / What should be done**:
+3D raytracing scene with data as cloud of (metallic) points, together with their original coordinate system. Light source at infinity, 2D plane 'on the floor', showing the shadows of the points. Varianceometers (e.g., barplots) that shows variance components for 1st and 2nd axis of the plane, and residual variance. Point cloud rotating until variances along 1st and 2nd axis are optimized.
+
+**Done / What we have so far**:
+
 ```{r}
 #| label: loadpkgs
 #| message: false
