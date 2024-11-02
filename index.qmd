@@ -12,7 +12,9 @@ highlight-style: tango
 ---
 
 
-![Animated PCA of athletes data](pca-animation.gif)
+{{< video pca-animation.mp4 >}}
+
+<!-- ![Animated PCA of athletes data](pca-animation.gif) -->
 
 
 ```{r}
@@ -29,6 +31,9 @@ turtles = read.table("/Users/whuber/clones/MSMB-Quarto/data/PaintedTurtles.txt",
 variables = c("length", "width", "height")
 mat = as.matrix(turtles[, variables])
 ```
+
+For more on the athletes' data, see [the MSBM book](https://www.huber.embl.de/msmb/07-chap.html#what-are-the-data-matrices-and-their-motivation).
+
 ```{r}
 #| label: decathlon
 data("olympic", package = "ade4")
@@ -54,7 +59,7 @@ view = function(
   colplane = "#606060",
   surf = NULL
   ) {
-  expand_axes = 1.4
+  expand_axes = 1.45
   if (length(phi) == 1)   
     phi = rep(phi, length(theta))
   if (length(theta) == 1) 
@@ -108,8 +113,8 @@ view = function(
 ```{r}
 #| label: thesurf
 expand_plane = 2.7
-M = mesh(expand_plane * seq(-1, 1, by = 0.1), 
-         expand_plane * seq(-1, 1, by = 0.1))
+M = mesh(expand_plane * seq(-1, 1, by = 0.2), 
+         expand_plane * seq(-1, 1, by = 0.2))
 theplane = list(
   x = pca$rotation[1, 1] * M$x + pca$rotation[1, 2] * M$y,  
   y = pca$rotation[2, 1] * M$x + pca$rotation[2, 2] * M$y,  
@@ -121,25 +126,25 @@ theta1 = pi
 phi1   = 17/180*pi
 normalvec = pca$rotation[, 3]
 phi2   = asin(normalvec[3]) 
-theta2 = pi - atan2(normalvec[1], normalvec[2]) 
+theta2 = atan2(normalvec[2], normalvec[1]) + pi/2 # I'm not quite sure about, looks hacky
 ```
 
 Open an animation device, do the choreography.
 
 ```{r}
-#| label: saveGIF
+#| label: savemovie
 #| message: false
 #| results: "hide"
 nframe = 120
-saveGIF({ 
+saveVideo({
   view(theta = seq(-theta1, theta1, length.out = nframe), phi = phi1)
   view(theta = seq(-theta1, theta1, length.out = nframe), phi = phi1, num_axes = 1)
   view(theta = seq(-theta1, theta1, length.out = nframe), phi = phi1, num_axes = 2)
-  view(theta = seq(-theta1, theta1+pi, length.out = nframe), phi = phi1, surf = theplane)
-  view(theta = seq(theta1+pi, theta2, length.out = nframe), phi = seq(phi1, phi2, length.out = nframe), surf = theplane)
-  view(theta = rep(theta2, nframe/3), phi = rep(phi2, nframe/3), surf = theplane)
+  view(theta = seq(-theta1, theta1, length.out = nframe), phi = phi1, surf = theplane)
+  view(theta = seq(theta1, theta2, length.out = nframe), phi = seq(phi1, phi2, length.out = nframe), surf = theplane)
+  view(theta = rep(theta2, nframe/2), phi = rep(phi2, nframe/2), surf = theplane)
   }, 
-  interval = 0.05, movie.name = "pca-animation.gif", ani.width = 800, ani.height = 800)
+  interval = 0.05, video.name = "pca-animation.mp4", ani.width = 800, ani.height = 800, ffmpeg = "/opt/homebrew/bin/ffmpeg")
 ```
 
 # Session Info
