@@ -11,6 +11,10 @@ format:
 highlight-style: tango
 ---
 
+
+![Animated PCA of athletes data](pca-animation.gif)
+
+
 ```{r}
 library("plot3D")
 library("animation")
@@ -113,36 +117,30 @@ theplane = list(
   shade = 0.3, 
   border = NA, facets = NA, col = "#d0d0d080"
 )
-theta1 = -pi
+theta1 = pi
 phi1   = 17/180*pi
 normalvec = pca$rotation[, 3]
 phi2   = asin(normalvec[3]) 
 theta2 = pi - atan2(normalvec[1], normalvec[2]) 
 ```
 
-Open an animation device
+Open an animation device, do the choreography.
 
 ```{r}
 #| label: saveGIF
 #| message: false
 #| results: "hide"
-#nframe = 3
- nframe = 120
+nframe = 120
 saveGIF({ 
   view(theta = seq(-theta1, theta1, length.out = nframe), phi = phi1)
   view(theta = seq(-theta1, theta1, length.out = nframe), phi = phi1, num_axes = 1)
   view(theta = seq(-theta1, theta1, length.out = nframe), phi = phi1, num_axes = 2)
-  view(theta = seq(-theta1, theta1, length.out = nframe), phi = phi1, surf = theplane)
-  view(theta = seq(-theta1, theta2, length.out = nframe), phi = seq(phi1, phi2, length.out = nframe), surf = theplane)
+  view(theta = seq(-theta1, theta1+pi, length.out = nframe), phi = phi1, surf = theplane)
+  view(theta = seq(theta1+pi, theta2, length.out = nframe), phi = seq(phi1, phi2, length.out = nframe), surf = theplane)
   view(theta = rep(theta2, nframe/3), phi = rep(phi2, nframe/3), surf = theplane)
   }, 
-  interval = 0.03, movie.name = "pca-animation.gif", ani.width = 800, ani.height = 800)
+  interval = 0.05, movie.name = "pca-animation.gif", ani.width = 800, ani.height = 800)
 ```
-
-![pca-animation.gif](pca-animation.gif)
-
-
-
 
 # Session Info
 
