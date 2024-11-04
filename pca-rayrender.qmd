@@ -37,14 +37,22 @@ mat = as.matrix(athletes[, variables])
 ```
 
 ```{r}
+#| label: dopca
 smat = scale(mat, center = TRUE, scale = TRUE)
 pca = prcomp(smat, scale. = FALSE, center = FALSE)
 ```
+
+
+1. Implement rotation, but for only 3 points show the spheres to save time
+2. Add variance barplots in separate PNG
+3. Combine using imagemagick
+4. Loop and maximize first PC1, then PC2
 
 ```{r}
 #| fig-width: 5
 #| fig-height: 5
 #| out-width: "100%"
+#| label: scene
 #  generate_studio()
 scene = 
 generate_ground(material=diffuse(color = "#cccccc"),depth=-10) |>
@@ -56,18 +64,18 @@ for(i in 1:3) {
   aend  = -4 + 4 * (1:3==i)
   atext = -4 + 5 * (1:3==i)
   scene = add_object(scene, arrow(start = astart, end = aend, tail_proportion = 0.9, 
-                                  material = diffuse(color="black"))) |>
-    add_object(text3d(paste(i), x = atext[1], y = atext[2], z = atext[3], 
-      text_height = 0.6, orientation = c("yz", "xz", "xy")[i], material = diffuse(color="black")))
+                                  material = diffuse(color="black"))) # |>
+    # add_object(text3d(paste0(i), x = atext[1], y = atext[2], z = atext[3], text_height = 1.6, orientation = c("xy", "xy", "xy")[i], material = diffuse(color="yellow")))
 }
 
 scene = add_object(scene, sphere(y = 40, material = light(intensity = 1000)))
 
 render_scene(scene, parallel = TRUE, 
              width = 400, height = 400, samples = 128,
-#             width = 600, height = 600, samples = 512,
+ #            width = 600, height = 600, samples = 512,
              lookfrom = c(0, 50, 10),  lookat = c(0, 0, 0), clamp_value=8)
 
+plot(1:10)
 ```
 
 # Session Info
@@ -76,4 +84,36 @@ render_scene(scene, parallel = TRUE,
 #| label: sessioninfo
 Sys.time()
 devtools::session_info()
+```
+
+
+
+```{r}
+#| label: animate
+#| eval: false
+# Set up the folder to save frames
+dir.create("frames")
+
+# Number of frames
+num_frames <- 60
+
+# Render each frame with a slightly different angle
+for (i in seq_len(num_frames)) {
+  # Calculate the position of the sphere in each frame (for example, rotating around the y-axis)
+  angle <- i * (2 * pi / num_frames)
+  x_pos <- 3 * cos(angle)
+  z_pos <- 3 * sin(angle)
+  
+  # Update the scene with the new position of the sphere
+  animated_scene <- add_object(base_scene, sphere(x = x_pos, y = 1, z = z_pos, radius = 1, material = diffuse(color = "blue")))
+  
+  # Render the scene and save the frame as an image
+  render_scene(animated_scene, samples = 100, width = 800, height = 800, 
+               filename = sprintf("frames/frame_%03d.png", i))
+}
+```
+```{sh}
+#| label: ffmpeg
+#| eval: false
+ffmpeg -framerate 30 -i frames/frame_%03d.png -c:v libx264 -pix_fmt yuv420p animation.mp4
 ```
