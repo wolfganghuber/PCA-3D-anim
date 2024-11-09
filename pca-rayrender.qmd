@@ -26,6 +26,7 @@ library("rayrender")
 library("animation")
 library("RSpincalc")
 library("assertthat")
+library("dplyr")
 ```
 
 For more on the decathlon data, see [the MSMB book](https://www.huber.embl.de/msmb/07-chap.html#what-are-the-data-matrices-and-their-motivation).
@@ -40,16 +41,22 @@ mat = as.matrix(athletes[, variables])
 
 ```{r}
 #| label: dopca
+#| results: "hide"
 smat = scale(mat, center = TRUE, scale = TRUE)
 pca = prcomp(smat, scale. = FALSE, center = FALSE)
-
+```
+Make sure the rotation has positive determinant and extract Euler angles representation.
+```{r}
+#| label: Eulerangles
+#| results: "hide"
 assert_that(are_equal(smat %*% pca$rotation, pca$x, check.attributes = FALSE))
 if(det(pca$rotation) < 0) {
   pca$rotation[,3] = -pca$rotation[,3] 
   pca$x[,3] = -pca$x[,3]
   assert_that(are_equal(smat %*% pca$rotation, pca$x, check.attributes = FALSE))
 }
-assert_that(are_equal(EA2DCM(DCM2EA(pca$rotation)), pca$rotation, check.attributes = FALSE))
+angles = DCM2EA(pca$rotation)
+assert_that(are_equal(EA2DCM(angles), pca$rotation, check.attributes = FALSE))
 ```
 
 
@@ -63,67 +70,65 @@ assert_that(are_equal(EA2DCM(DCM2EA(pca$rotation)), pca$rotation, check.attribut
 #| fig-height: 5
 #| out-width: "100%"
 #| label: scene
+devsize = c(width = 400, height1 = 400, height2 = 200)
+var_ax_orig  = c(-3, -3, +3)
+var_axes = diag(x = 1, nrow = 3) * 2
+var_axes[, 3] = -var_axes[, 3]
 
-ax_orig  = 4 * c(-1, -1, -1)
-ax_len = 2
-var_axes = diag(x = 1, nrow = 3) * ax_len
-pc_axes  = cbind(c(ax_orig[1],          -10, ax_orig[3]),
-                 c(ax_orig[1] + ax_len, -10, ax_orig[3]),
-                 c(ax_orig[1],          -10, ax_orig[3]+ ax_len))
+pc_ax_orig  = c(-4, -10, +4)
+pc_axes  = rbind(c( 1,  0),
+                 c( 0,  0),
+                 c( 0, -1)) * 1.5
 pointcol = "#2b6eff"
 
-angles2mat = function (theta, phi, r = 1)
-  rbind(c( cos(phi), 0, sin(phi)),
-        c(        0, 1,        0),
-        c(-sin(phi), 0, cos(phi))) %*%
-  rbind(c(1,          0,           0),
-        c(0, cos(theta), -sin(theta)),
-        c(0, sin(theta),  cos(theta)))
+frames = tibble(EA = angles)
+
+for (f in seq_len(nrow(frames))) {
+  rot = EA2DCM(frames$EA[f,])
+  pts = smat %*% rot
   
+  scene = generate_ground(
+    material = diffuse(color = "#cccccc", fogdensity = 0, sigma = 0), 
+    depth = -10)
 
-scene = generate_ground(material = 
-                          #metal(color = "#cccccc"), 
-                           diffuse(color = "#cccccc"), 
-                        depth= - 10)
+  for(i in seq_len(nrow(pts))) 
+    scene = add_object(scene, 
+      sphere(x = pts[i, 1], 
+             y = pts[i, 2],
+             z = pts[i, 3],
+             radius = 0.15,
+             material = glossy(color = pointcol, reflectance = 0.05)))
+  
+  for(i in 1:3) 
+    scene = add_object(scene, 
+      arrow(start = var_ax_orig, 
+            end   = var_ax_orig + var_axes[, i], 
+            tail_proportion = 0.9,
+            radius_top = 0.1, 	
+            radius_tail = 0.05,
+            material = diffuse(color = pointcol))) 
+  
+  for(i in 1:2)
+    scene = add_object(scene, 
+      arrow(start = pc_ax_orig, 
+            end =   pc_ax_orig + pc_axes[, i], 
+            tail_proportion = 0.9, 
+            radius_top = 0.1, 	
+            radius_tail = 0.05,
+            material = diffuse(color = "black")))
+  
+  # large distance and very bright to emulate parallel light. Is there a more elegant light source?
+  scene = add_object(scene, sphere(y = 1000, material = light(intensity = 500000)))
 
-for(i in seq_len(nrow(pca$x)))
-  scene = with(pca, add_object(scene, 
-      sphere(x = x[i, 1], 
-            y = x[i, 2],
-            z = x[i, 3],
-            radius = 0.15,
-            material = glossy(color = pointcol, reflectance = 0.05))))
-
-for(i in 1:3) {
-  astart = ax_orig
-  aend   = ax_orig + var_axes[, i]
-  scene = add_object(scene, 
-     arrow(start = astart, 
-           end = aend, 
-           tail_proportion = 0.9,
-           radius_top = 0.1, 	
-           radius_tail =  0.05,
-           material = diffuse(color=pointcol))) 
-  # add_object(text3d(paste0(i), x = atext[1], y = atext[2], z = atext[3], text_height = 1.6, orientation = c("xy", "xy", "xy")[i], material = diffuse(color="yellow")))
-}
-
-for(i in 1:2)
-  scene = add_object(scene, 
-     arrow(start = pc_axes[, 1], 
-           end =   pc_axes[, i+1], 
-           tail_proportion = 0.9, 
-           radius_top = 0.1, 	
-           radius_tail =  0.05,
-           material = diffuse(color="black")))
-
-scene = add_object(scene, sphere(y = 40, material = light(intensity = 1000)))
-
-render_scene(scene, parallel = TRUE, 
-             width = 400, height = 400, samples = 128,
- #            width = 600, height = 600, samples = 512,
-             lookfrom = c(0, 50, 10),  lookat = c(0, 0, 0), clamp_value=8)
-
-plot(1:10)
+  render_scene(scene, parallel = TRUE, 
+               width = devsize["width"], height = devsize["height1"], samples = 128,
+               lookfrom = c(0, 50, 10), lookat = c(0, 0, 0), clamp_value = 8,
+               filename = sprintf("frames/scene_%03d.png", f))
+  
+  png(file = sprintf("frames/plot_%03d.png", f), width = devsize["width"], height = devsize["height2"])
+    plot(1:10)
+  dev.off()
+} # for f
 ```
 
 # Session Info
