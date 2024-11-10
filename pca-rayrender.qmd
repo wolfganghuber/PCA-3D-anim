@@ -88,33 +88,25 @@ for (f in seq_len(nrow(frames))) {
   pts = smat %*% rot
   
   scene = generate_ground(
-    material = diffuse(color = "#cccccc", fogdensity = 0, sigma = 0), 
-    depth = -10)
+    material = diffuse(color = "#cccccc", fogdensity = 0, sigma = 0), depth = -10)
 
   for(i in seq_len(nrow(pts))) 
     scene = add_object(scene, 
-      sphere(x = pts[i, 1], 
-             y = pts[i, 2],
-             z = pts[i, 3],
-             radius = 0.15,
+      sphere(x = pts[i, 1], y = pts[i, 2], z = pts[i, 3], radius = 0.15,
              material = glossy(color = pointcol, reflectance = 0.05)))
   
   for(i in 1:3) 
     scene = add_object(scene, 
       arrow(start = var_ax_orig, 
             end   = var_ax_orig + var_axes[, i], 
-            tail_proportion = 0.9,
-            radius_top = 0.1, 	
-            radius_tail = 0.05,
+            tail_proportion = 0.9, radius_top = 0.1, radius_tail = 0.05,
             material = diffuse(color = pointcol))) 
   
   for(i in 1:2)
     scene = add_object(scene, 
       arrow(start = pc_ax_orig, 
             end =   pc_ax_orig + pc_axes[, i], 
-            tail_proportion = 0.9, 
-            radius_top = 0.1, 	
-            radius_tail = 0.05,
+            tail_proportion = 0.9, radius_top = 0.1, radius_tail = 0.05,
             material = diffuse(color = "black")))
   
   # large distance and very bright to emulate parallel light. Is there a more elegant light source?
