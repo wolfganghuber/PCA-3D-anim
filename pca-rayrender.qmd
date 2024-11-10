@@ -15,8 +15,10 @@ highlight-style: tango
 
 [Code on GitHub](https://github.com/wolfganghuber/PCA-3D-anim)
 
-**To do / What should be done**:
-3D raytracing scene with data as cloud of (metallic) points, together with their original coordinate system. Light source at infinity, 2D plane 'on the floor', showing the shadows of the points. Varianceometers (e.g., barplots) that shows variance components for 1st and 2nd axis of the plane, and residual variance. Point cloud rotating until variances along 1st and 2nd axis are optimized.
+**To do**:
+Varianceometers (e.g., barplots) that shows variance components for 1st and 2nd axis of the plane, and residual variance. Point cloud rotating until variances along 1st and 2nd axis are optimized.
+
+# Load packages
 
 ```{r}
 #| label: loadpkgs
@@ -29,6 +31,8 @@ library("assertthat")
 library("dplyr")
 ```
 
+# Data: Decathlon
+
 For more on the decathlon data, see [the MSMB book](https://www.huber.embl.de/msmb/07-chap.html#what-are-the-data-matrices-and-their-motivation).
 
 ```{r}
@@ -38,6 +42,8 @@ athletes = setNames(olympic$tab, c("m100", "long", "weight", "high", "m400", "m1
 variables = c("m100", "weight", "m400")
 mat = as.matrix(athletes[, variables])
 ```
+
+# Do the PCA
 
 ```{r}
 #| label: dopca
@@ -59,17 +65,10 @@ angles = DCM2EA(pca$rotation)
 assert_that(are_equal(EA2DCM(angles), pca$rotation, check.attributes = FALSE))
 ```
 
-
-1. Implement rotation, but for only 3 points show the spheres to save time
-2. Add variance barplots in separate PNG
-3. Combine using imagemagick
-4. Loop and maximize first PC1, then PC2
+# Animation parameters / setup
 
 ```{r}
-#| fig-width: 5
-#| fig-height: 5
-#| out-width: "100%"
-#| label: scene
+#| label: animsetup
 devsize = c(width = 400, height1 = 400, height2 = 200)
 var_ax_orig  = c(-3, -3, +3)
 var_axes = diag(x = 1, nrow = 3) * 2
@@ -82,7 +81,12 @@ pc_axes  = rbind(c( 1,  0),
 pointcol = "#2b6eff"
 
 frames = tibble(EA = angles)
+```
 
+# Animation Loop
+
+```{r}
+#| label: animloop
 for (f in seq_len(nrow(frames))) {
   rot = EA2DCM(frames$EA[f,])
   pts = smat %*% rot
