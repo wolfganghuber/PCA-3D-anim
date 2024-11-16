@@ -29,6 +29,7 @@ library("animation")
 library("RSpincalc")
 library("assertthat")
 library("dplyr")
+library("ggplot2")
 ```
 
 # Data: Decathlon
@@ -61,8 +62,8 @@ if(det(pca$rotation) < 0) {
   pca$x[,3] = -pca$x[,3]
   assert_that(are_equal(smat %*% pca$rotation, pca$x, check.attributes = FALSE))
 }
-angles = DCM2EA(pca$rotation)
-assert_that(are_equal(EA2DCM(angles), pca$rotation, check.attributes = FALSE))
+pca_angles = DCM2EA(pca$rotation)
+assert_that(are_equal(EA2DCM(pca_angles), pca$rotation, check.attributes = FALSE))
 ```
 
 # Animation parameters / setup
@@ -80,7 +81,14 @@ pc_axes  = rbind(c( 1,  0),
                  c( 0, -1)) * 1.5
 pointcol = "#2b6eff"
 
+angles = rbind(c(0,0,0),
+               pca_angles)
 frames = tibble(EA = angles)
+
+outdir = "frames"
+if (file.exists(outdir))
+     unlink(outdir, recursive = TRUE)
+dir.create(outdir)
 ```
 
 # Animation Loop
@@ -91,8 +99,7 @@ for (f in seq_len(nrow(frames))) {
   rot = EA2DCM(frames$EA[f,])
   pts = smat %*% rot
   
-  scene = generate_ground(
-    material = diffuse(color = "#cccccc", fogdensity = 0, sigma = 0), depth = -10)
+  scene = generate_ground(material = diffuse(color = "#cccccc", fogdensity = 0, sigma = 0), depth = -10)
 
   for(i in seq_len(nrow(pts))) 
     scene = add_object(scene, 
@@ -101,14 +108,14 @@ for (f in seq_len(nrow(frames))) {
   
   for(i in 1:3) 
     scene = add_object(scene, 
-      arrow(start = var_ax_orig, 
+      rayrender::arrow(start = var_ax_orig, 
             end   = var_ax_orig + var_axes[, i], 
             tail_proportion = 0.9, radius_top = 0.1, radius_tail = 0.05,
             material = diffuse(color = pointcol))) 
   
   for(i in 1:2)
     scene = add_object(scene, 
-      arrow(start = pc_ax_orig, 
+      rayrender::arrow(start = pc_ax_orig, 
             end =   pc_ax_orig + pc_axes[, i], 
             tail_proportion = 0.9, radius_top = 0.1, radius_tail = 0.05,
             material = diffuse(color = "black")))
@@ -119,12 +126,22 @@ for (f in seq_len(nrow(frames))) {
   render_scene(scene, parallel = TRUE, 
                width = devsize["width"], height = devsize["height1"], samples = 128,
                lookfrom = c(0, 50, 10), lookat = c(0, 0, 0), clamp_value = 8,
-               filename = sprintf("frames/scene_%03d.png", f))
+               filename = sprintf("%s/scene_%03d.png", outdir, f))
   
-  png(file = sprintf("frames/plot_%03d.png", f), width = devsize["width"], height = devsize["height2"])
-    plot(1:10)
+  png(file = sprintf("%s/plot_%03d.png", outdir, f), width = devsize["width"], height = devsize["height2"])
+  nm = rev(c("Axis 1", "Axis 2", "Residual"))
+  tibble(what = factor(nm, levels = nm),
+         variance = rev(matrixStats::colVars(pts))) |>
+    ggplot(aes(x = variance, y = what)) + geom_col() + 
+      theme(axis.title.y = element_blank())  
   dev.off()
 } # for f
+```
+
+```{sh}
+#| label: ffmpeg
+#| eval: false
+ffmpeg -framerate 30 -i frames/frame_%03d.png -c:v libx264 -pix_fmt yuv420p animation.mp4
 ```
 
 # Session Info
@@ -137,32 +154,3 @@ devtools::session_info()
 
 
 
-```{r}
-#| label: animate
-#| eval: false
-# Set up the folder to save frames
-dir.create("frames")
-
-# Number of frames
-num_frames <- 60
-
-# Render each frame with a slightly different angle
-for (i in seq_len(num_frames)) {
-  # Calculate the position of the sphere in each frame (for example, rotating around the y-axis)
-  angle <- i * (2 * pi / num_frames)
-  x_pos <- 3 * cos(angle)
-  z_pos <- 3 * sin(angle)
-  
-  # Update the scene with the new position of the sphere
-  animated_scene <- add_object(base_scene, sphere(x = x_pos, y = 1, z = z_pos, radius = 1, material = diffuse(color = "blue")))
-  
-  # Render the scene and save the frame as an image
-  render_scene(animated_scene, samples = 100, width = 800, height = 800, 
-               filename = sprintf("frames/frame_%03d.png", i))
-}
-```
-```{sh}
-#| label: ffmpeg
-#| eval: false
-ffmpeg -framerate 30 -i frames/frame_%03d.png -c:v libx264 -pix_fmt yuv420p animation.mp4
-```
