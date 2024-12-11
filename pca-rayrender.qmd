@@ -125,33 +125,35 @@ for (f in seq_len(nrow(frames))) {
   scene = add_object(scene, sphere(y = 1000, material = light(intensity = 500000)))
 
   pngfiles = sprintf("%s/img_%04d_%d.png", outdir, f, 1:3)
+  
   render_scene(scene, parallel = TRUE, 
                width = devsize["width"], height = devsize["height1"], samples = 128,
                lookfrom = c(0, 50, 10), lookat = c(0, 0, 0), clamp_value = 8,
                filename = pngfiles[1])
   
-  nm = rev(c("Axis 1", "Axis 2", "Residual"))
-  #png(filename = pngfiles[2], width = devsize["width"], height = devsize["height2"], type = "cairo-png") 
-  #png(filename = "a.png", width = devsize["width"], height = devsize["height2"], type = "cairo-png") 
-  #print(dev.cur())
-  #quartz()
-  tibble(what = factor(nm, levels = nm),
-         variance = rev(matrixStats::colVars(pts))) |>
-    ggplot(aes(x = variance, y = what)) + geom_col() + 
-      theme(axis.title.y = element_blank())  
-  #cat(getwd(), pngfiles[2])
-  #dev.copy(png, filename = "a.png")
-  #dev.off()
+  nm = rev(c("axis 1", "axis 2", "residual"))
   
+  gg = ggplot(
+         tibble(
+           what = factor(nm, levels = nm),
+           variance = rev(matrixStats::colVars(pts))),
+         aes(x = variance, y = what)
+        ) + xlim(0, 1.7) + geom_col() + theme(axis.title.y = element_blank())  
+  
+  ggsave(plot = gg, filename = pngfiles[2], dpi = 150, 
+      width  = devsize["width"]   / 150, 
+      height = devsize["height2"] / 150, 
+      device = "png") 
+
   imgs = lapply(pngfiles[-length(pngfiles)], readImage)
-  dims = sapply(z, dim)
-  assert_that(all(z[1, ] == z[1, 1]),       # same x-dimension 
-              all(z[3, ] %in% c(3L, 4L)))   # rgb or rgb+alpha
+  dims = sapply(imgs, dim)
+  assert_that(all(dims[1, ] == dims[1, 1]),      # same x-dimension 
+              all(dims[3, ] %in% c(3L, 4L)))     # rgb or rgb+alpha
   yoff = 0
-  res = Image(dim = c(dims[1,1], sum(dims[2,]), 3))
+  res = Image(dim = c(dims[1,1], sum(dims[2,]), 3), colormode = "Color")
   for (i in seq_along(imgs)) {
     res[, yoff + seq_len(dims[2, i]), ] = imgs[[i]][,,1:3]
-    yoff = yoff + z[2, i]
+    yoff = yoff + dims[2, i]
   }
   writeImage(res, file = pngfiles[length(pngfiles)])
 } # for f
